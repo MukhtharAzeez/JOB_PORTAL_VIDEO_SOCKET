@@ -1,41 +1,22 @@
-const io = require("socket.io")(8000, {
+const io = require("socket.io")(8400, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: "http://127.0.0.1:5173",
     },
 });
 
-let activeUser = [];
 
 io.on("connection", (socket) => {
-    socket.on("new-user-add", (newUserId) => {
-        if (!activeUser.some((user) => user.userId === newUserId)) {
-            activeUser.push({
-                userId: newUserId,
-                socketId: socket.id,
-            });
-        }
-        io.emit("get-user", activeUser);
+    io.emit('me', socket.id);
+    socket.on('callUser', ({ userToCall, signalData, from, name }) => {
+        io
+            .to(userToCall)
+            .emit('callUser', { signal: signalData, from, name });
     });
-    io.emit("get-user", activeUser);
-    socket.on("send-message", (data) => {
-        const { receiverId } = data;
-        const user = activeUser.find((user) => user.userId === receiverId);
-        if (user) {
-            io.to(user.socketId).emit("receive-message", data);
-        }
-    });
-    socket.on("send-notification", (data) => {
-        const { receiver } = data;
-        const user = activeUser.find((user) => {
-            return user.userId === receiver;
-        });
-        if (user) {
-            io.to(user.socketId).emit("receive-notification", data);
-        }
+    socket.on('answerCall', (data) => {
+        io.to(data.to).emit('callAccepted', data.signal);
     });
 
     socket.on("disconnect", () => {
-        activeUser = activeUser.filter((user) => user.socketId !== socket.id);
-        io.emit("get-users", activeUser);
+        io.emit('Call ended');
     });
 });
