@@ -1,6 +1,6 @@
 const io = require("socket.io")(8400, {
     cors: {
-        origin: "*",
+        origin: "https://hireon.labonnz.club",
     },
 });
 
